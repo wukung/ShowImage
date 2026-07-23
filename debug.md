@@ -85,6 +85,23 @@ Reviewed commit: `43b5b7c`
 
 ---
 
+## 2026-07-23 — PR #6 review (pass 3) — loop exit
+
+Reviewed commit: `3095982`  
+Result: **no medium or higher findings**. Residual: P6-4 nit only.
+
+| Prior | Status |
+|-------|--------|
+| P6-1 Command scroll recurse | fixed (verified) |
+| P6-2 Directory probe vs scope | fixed (verified) |
+| P6-3 Pending URL append | fixed (verified) |
+| P6-5 Non-Command scroll re-entry | fixed (verified) |
+| P6-4 Full Screen title | open (nit, deferred) |
+
+AGENT §8 review loop for PR #6: **complete**.
+
+---
+
 ## Template (copy for new entries)
 
 ```markdown
