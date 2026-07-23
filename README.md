@@ -53,6 +53,8 @@ cmake --build build
 open build/src/ShowImage.app
 ```
 
+App icon sources live under `resources/` (`AppIcon-1024.png`, `AppIcon.iconset/`, `ShowImage.icns`) and are copied into the `.app` at build time.
+
 Generate an Xcode project (recommended for signing / App Store):
 
 ```bash

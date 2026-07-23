@@ -66,6 +66,15 @@ Result: **no medium+**. W1–W7 verified. Sticky fit + welcome ready for commit/
 
 ---
 
+## 2026-07-23 — App icon
+
+- Generated macOS-style rounded icon (landscape photo in frame on dark glass).
+- Assets: `resources/AppIcon-1024.png`, `resources/AppIcon.iconset/`, `resources/ShowImage.icns`
+- CMake POST_BUILD copies `ShowImage.icns` into the app bundle; Info.plist `CFBundleIconFile=ShowImage`
+- Status: implemented (local)
+
+---
+
 ## 2026-07-23 — PR #7 merged
 
 - PR: https://github.com/wukung/ShowImage/pull/7 → **MERGED** (`6a93c93`)
