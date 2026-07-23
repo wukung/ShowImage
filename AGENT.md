@@ -164,22 +164,48 @@ When source code lands on the default branch (PR merge or equivalent accept):
 
 ## 8. Code review loop (required)
 
-When the user asks for a **review**, or after implementing a non-trivial change that should be reviewed:
+### 8.1 When the loop is mandatory
 
-1. Run review (local changes, branch, or PR as appropriate).
-2. Map severities:
+**After coding finishes for any feature add or modification (i.e. program source changed), always run the review → fix → re-review loop** without waiting for the user to say “review”.
+
+Triggers include (non-exhaustive):
+
+- New feature or behavior change in `src/`, `lib/`, `include/`, or related app packaging that affects runtime
+- Bug fixes that change logic (not pure comment-only or whitespace-only edits)
+- Follow-up fixes from a previous review pass (each fix batch still ends with re-review)
+
+Also run the loop when the user **explicitly** asks for a review (local / branch / PR).
+
+**Does not** require the full loop by itself:
+
+- Docs-only edits (`design.md`, `AGENT.md`, `debug.md`, `README.md`) with **no** source change — still keep docs accurate
+- Pure formatting / rename with no behavior change *if* trivial; when unsure, run the loop
+
+Do **not** treat “coding done” as the end of the task while medium+ review findings remain open.
+
+### 8.2 Loop steps
+
+1. Finish implementation and ensure **build succeeds**.
+2. **Start review** (local changes, branch, or PR as appropriate) — default: review the diff just produced.
+3. Map severities:
    - Treat skill labels **`bug` → high**, **`suggestion` → medium**, **`nit` → low** (unless the review text says otherwise).
    - **Medium or higher** means: `bug` / high, and `suggestion` / medium.
-3. **If any medium-or-higher issue remains:**
+4. **If any medium-or-higher issue remains:**
    - Append findings to **`debug.md`**
    - Fix the issues
    - Log the fix in **`debug.md`**
    - **Re-run review** on the updated code
-4. **Repeat** steps 2–3 until a review pass finds **no medium or higher** issues.
-5. Nits / low-severity items may be fixed in the same loop or deferred; they do **not** by themselves require another full cycle unless the user wants a clean slate.
-6. After the loop exits cleanly, ensure **`design.md`** still matches the fixed code (and stays concise per §7.1).
+5. **Repeat** steps 3–4 until a review pass finds **no medium or higher** issues.
+6. Nits / low-severity items may be fixed in the same loop or deferred; they do **not** by themselves require another full cycle unless the user wants a clean slate.
+7. After the loop exits cleanly, ensure **`design.md`** still matches the fixed code (and stays concise per §7.1).
 
-Do not declare “review done” while medium+ findings are still open.
+### 8.3 Order of work
+
+```text
+implement → build → review → (fix → re-review)* → design.md sync → then commit/PR only if user asked
+```
+
+Do not declare “feature done” or “review done” while medium+ findings are still open.
 
 ---
 
@@ -192,6 +218,7 @@ Do not declare “review done” while medium+ findings are still open.
 - Do not generate or commit large binary fixtures/assets unless requested.
 - Do not let `design.md` accumulate obsolete design; delete or rewrite, do not stack contradictions.
 - Do not end a review cycle with open **medium+** issues.
+- Do not skip the review→fix→re-review loop after source code changed for a feature add/modify (§8.1).
 
 ---
 
@@ -203,8 +230,8 @@ Do not declare “review done” while medium+ findings are still open.
 [ ] Implement minimal diff for the request
 [ ] cmake --build succeeds
 [ ] Manual smoke: open file, open folder, prev/next, zoom, fullscreen
-[ ] Log issues/fixes in debug.md when reviewing or debugging
-[ ] Review loop: re-review until no medium+ findings
+[ ] After any source change: start review → fix → re-review until no medium+
+[ ] Log issues/fixes in debug.md during the review loop
 [ ] Keep design.md in sync and concise (remove stale parts)
 [ ] After PR merge: re-check design.md vs source
 [ ] Commit / PR only if user asked
