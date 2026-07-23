@@ -1,8 +1,12 @@
 #import "SandboxAccess.h"
 
+// App Sandbox: only user-selected URLs (Open panel / Finder) may be read.
+// We start security-scoped access and stop it when the selection changes.
+
 @interface SandboxAccess ()
 @property(nonatomic, strong, nullable) NSURL* directoryURL;
 @property(nonatomic, strong, nullable) NSURL* fileURL;
+/// URLs for which we successfully called startAccessingSecurityScopedResource.
 @property(nonatomic, strong) NSMutableArray<NSURL*>* scopedURLs;
 @end
 
@@ -21,6 +25,7 @@
 }
 
 - (void)stopAll {
+  // Always pair startAccessing with stopAccessing for tracked URLs.
   for (NSURL* url in self.scopedURLs) {
     [url stopAccessingSecurityScopedResource];
   }
@@ -35,7 +40,8 @@
   }
 
   BOOL started = [url startAccessingSecurityScopedResource];
-  // Open panel URLs often already grant access; still track for cleanup when started.
+  // Open panel URLs often already grant access (started == NO); only track
+  // URLs where we must call stop later.
   if (started) {
     [self.scopedURLs addObject:url];
   }
@@ -46,9 +52,10 @@
     self.directoryURL = url;
   } else {
     self.fileURL = url;
-    // Remember parent for display; sandbox may still block listing siblings.
+    // Parent path for UI context only — listing siblings still needs folder scope.
     self.directoryURL = url.URLByDeletingLastPathComponent;
   }
+  // YES means we recorded the URL; not a guarantee of unrestricted FS access.
   return YES;
 }
 

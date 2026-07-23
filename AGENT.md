@@ -86,7 +86,20 @@ Do not dump random sources at repo root.
 - If C++ objects are owned by ObjC, document ownership (`new`/`delete` in `init`/`dealloc` as today).
 - Do not put non-POD C++ members in ObjC `@interface` without care; current style uses a pointer to `ImageList`.
 
-### 3.3 General
+### 3.3 Comments (required for new/changed code)
+
+When **adding or modifying** source code, include **clear comments** so later sessions and reviewers can follow intent without reverse-engineering.
+
+- **Why, not noise:** explain non-obvious intent, invariants, edge cases, sandbox constraints, and trade-offs. Skip restating the next line of code.
+- **New public APIs:** brief header/doc comment on purpose and ownership (who frees what, thread assumptions).
+- **Non-trivial logic:** short comments on algorithm steps, mode flags (e.g. fit-to-view), and layout/zoom contracts.
+- **Bug fixes / review fixes:** note the reason (e.g. “avoid re-entry”, “scope before directory probe”) so the fix is not undone later.
+- **Language:** English, same as existing identifiers; keep comments concise.
+- **CMake / packaging:** comment non-obvious build or bundle steps.
+
+Do not leave substantial new code uncommented if a future reader would reasonably ask “why is this here?”
+
+### 3.4 General
 
 - Match existing style (2-space indent in these sources, English identifiers/comments).
 - No drive-by refactors unrelated to the task.
@@ -228,6 +241,7 @@ Do not declare “feature done” or “review done” while medium+ findings ar
 [ ] Read design.md + AGENT.md + debug.md
 [ ] Confirm change belongs in lib vs src vs resources
 [ ] Implement minimal diff for the request
+[ ] Add clear comments on new/changed non-obvious code (§3.3)
 [ ] cmake --build succeeds
 [ ] Manual smoke: open file, open folder, prev/next, zoom, fullscreen
 [ ] After any source change: start review → fix → re-review until no medium+

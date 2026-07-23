@@ -1,5 +1,8 @@
 #pragma once
 
+// Ordered playlist of images (single file or directory scan).
+// Pure C++: no AppKit. The UI owns security-scoped access and decoding.
+
 #include "showimage/types.hpp"
 
 #include <cstddef>
@@ -15,14 +18,14 @@ class ImageList {
  public:
   ImageList() = default;
 
-  /// Replace contents with a single file (no siblings).
+  /// Replace contents with a single file (no sibling scan).
   void SetSingleFile(const PathString& filePath);
 
-  /// Replace contents by scanning `directory` for supported images (sorted by name).
-  /// Returns number of images found.
+  /// Scan `directory` for supported images (sorted by fileName, byte order).
+  /// Returns the number of images found (0 if not a directory or empty).
   std::size_t ScanDirectory(const PathString& directory);
 
-  /// Scan `directory` and select `preferredFile` if present; otherwise first image.
+  /// Scan then select `preferredFile` if present; otherwise keep index 0.
   std::size_t ScanDirectorySelecting(const PathString& directory,
                                      const PathString& preferredFile);
 
@@ -33,7 +36,7 @@ class ImageList {
   [[nodiscard]] std::optional<ImageEntry> Current() const;
   [[nodiscard]] const PathString& Directory() const noexcept { return directory_; }
 
-  /// Move by one step; wraps around. Returns false if empty or only one image.
+  /// Move by one step with wrap-around. False if empty or only one image.
   bool Navigate(NavigateDirection direction);
 
   /// Jump to absolute index if in range.
@@ -44,9 +47,9 @@ class ImageList {
   }
 
  private:
-  PathString directory_;
-  std::vector<ImageEntry> entries_;
-  std::size_t index_ = 0;
+  PathString directory_;              // parent folder of the list
+  std::vector<ImageEntry> entries_;  // sorted playlist
+  std::size_t index_ = 0;            // current image
 };
 
 }  // namespace showimage

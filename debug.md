@@ -66,6 +66,16 @@ Result: **no medium+**. W1–W7 verified. Sticky fit + welcome ready for commit/
 
 ---
 
+## 2026-07-23 — Comments pass on existing sources
+
+- Added file-level and key-logic comments across `include/`, `lib/`, and `src/`
+  (why / contracts / sandbox / zoom layout; English per AGENT §3.3).
+- No intentional behavior changes.
+- Review: **no medium+** (comment-only, accurate). Loop exit.
+- Status: local
+
+---
+
 ## 2026-07-23 — App icon
 
 - Generated macOS-style rounded icon (landscape photo in frame on dark glass).

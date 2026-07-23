@@ -2,6 +2,9 @@
 
 #import <ImageIO/ImageIO.h>
 
+// Thin wrapper around NSImage + ImageIO. Decoding stays out of the C++ core
+// so showimage_core never links AppKit.
+
 @implementation ImageLoader
 
 + (NSImage*)imageAtURL:(NSURL*)url error:(NSError* _Nullable* _Nullable)error {
@@ -31,7 +34,8 @@
     return nil;
   }
 
-  // Prefer pixel dimensions for display size.
+  // Default NSImage.size may be in points; prefer true pixel size for zoom %
+  // and "actual size" framing.
   const NSSize pixels = [self pixelSizeOfImageAtURL:url];
   if (pixels.width > 0 && pixels.height > 0) {
     image.size = pixels;
@@ -40,6 +44,7 @@
 }
 
 + (NSSize)pixelSizeOfImageAtURL:(NSURL*)url {
+  // Properties-only query — avoids a second full bitmap decode when possible.
   CGImageSourceRef source =
       CGImageSourceCreateWithURL((__bridge CFURLRef)url, nullptr);
   if (!source) {

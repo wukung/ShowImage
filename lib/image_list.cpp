@@ -16,6 +16,7 @@ std::string FileNameFromPath(const PathString& path) {
   return p.filename().string();
 }
 
+// Parent of a file path; falls back to "./" if the path has no parent.
 PathString ParentDirectory(const PathString& filePath) {
   const fs::path p(filePath);
   return p.has_parent_path() ? p.parent_path().string() : PathString{"./"};
@@ -24,6 +25,7 @@ PathString ParentDirectory(const PathString& filePath) {
 }  // namespace
 
 void ImageList::SetSingleFile(const PathString& filePath) {
+  // Single-file mode: prev/next only works after a later directory scan.
   entries_.clear();
   directory_ = ParentDirectory(filePath);
   index_ = 0;
@@ -44,6 +46,7 @@ std::size_t ImageList::ScanDirectory(const PathString& directory) {
     return 0;
   }
 
+  // Non-recursive listing; skip entries we cannot access (sandbox / permissions).
   for (const auto& entry : fs::directory_iterator(
            dir, fs::directory_options::skip_permission_denied, ec)) {
     if (ec) {
@@ -59,6 +62,7 @@ std::size_t ImageList::ScanDirectory(const PathString& directory) {
     entries_.push_back(ImageEntry{path, entry.path().filename().string()});
   }
 
+  // Byte-order sort (not Finder natural sort) — simple and locale-independent.
   std::sort(entries_.begin(), entries_.end(),
             [](const ImageEntry& a, const ImageEntry& b) {
               return a.fileName < b.fileName;
@@ -74,7 +78,7 @@ std::size_t ImageList::ScanDirectorySelecting(const PathString& directory,
     return 0;
   }
 
-  // Normalize preferred path for comparison.
+  // Canonicalize so "./a.jpg" and "/abs/a.jpg" still match when possible.
   std::error_code ec;
   const fs::path preferred = fs::weakly_canonical(preferredFile, ec);
   const std::string preferredStr =
@@ -103,6 +107,7 @@ bool ImageList::Navigate(NavigateDirection direction) {
   if (entries_.size() <= 1) {
     return false;
   }
+  // Wrap-around: (i + d) mod n, handling negative via (x % n + n) % n.
   const auto n = static_cast<std::ptrdiff_t>(entries_.size());
   auto next = static_cast<std::ptrdiff_t>(index_) +
               static_cast<std::ptrdiff_t>(direction);

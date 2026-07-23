@@ -4,6 +4,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class ImageCanvasView;
 
+/// Keyboard / zoom notifications from the canvas to the window controller.
 @protocol ImageCanvasViewDelegate <NSObject>
 @optional
 - (void)imageCanvasViewRequestPrevious:(ImageCanvasView*)view;
@@ -11,13 +12,17 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)imageCanvasViewDidChangeZoom:(ImageCanvasView*)view;
 @end
 
-/// Scrollable canvas with zoom (pinch / menu / keyboard) and drag panning via NSScrollView.
+/// Scrollable image canvas: centered when smaller than the view, scrollers when
+/// larger, single frame-based zoom system (no NSScrollView magnification).
+///
+/// Sticky Fit to View: when fitToView is YES, window resize re-fits the image
+/// until the user zooms manually (in/out, actual size, pinch, ⌘+scroll).
 @interface ImageCanvasView : NSView
 
 @property(nonatomic, weak, nullable) id<ImageCanvasViewDelegate> delegate;
 @property(nonatomic, strong, nullable) NSImage* image;
 @property(nonatomic, assign, readonly) CGFloat zoomFactor;
-/// YES while the user is in sticky Zoom to Fit (recomputed on window resize).
+/// YES while sticky Zoom to Fit is active (recomputed on canvas resize).
 @property(nonatomic, assign, readonly, getter=isFitToView) BOOL fitToView;
 
 - (void)setImage:(nullable NSImage*)image fitToView:(BOOL)fitToView;
@@ -25,7 +30,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)zoomOut;
 - (void)zoomActualSize;
 - (void)zoomToFit;
-- (void)magnifyBy:(CGFloat)delta;  // cumulative scale factor delta for trackpad
+/// Multiply current zoom by delta (trackpad-style cumulative factor).
+- (void)magnifyBy:(CGFloat)delta;
 
 @end
 

@@ -1,9 +1,21 @@
 #import "ImageCanvasView.h"
 
+// Image display + zoom/pan.
+//
+// Layout model:
+//   ImageCanvasView
+//     └─ SIForwardingScrollView
+//          └─ SIDocumentContainer  (document view; grows with max(image, clip))
+//               └─ SIImageHostView (scaled image frame, centered in container)
+//
+// Zoom is frame-based only (imageView.frame = pixels * zoomFactor). We never
+// use NSScrollView.allowsMagnification (that desynced status % — issue #4).
+
 static const CGFloat kMinZoom = 0.05;
 static const CGFloat kMaxZoom = 32.0;
 static const CGFloat kZoomStep = 1.25;
 
+// How to place the scroll origin after changing document/image frames.
 typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   /// Scroll so the document/image center is in the middle of the clip.
   SIDocScrollCenter = 0,
@@ -13,7 +25,8 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   SIDocScrollClamp,
 };
 
-/// Forwards magnify / ⌘+scroll to the owning canvas so zoom stays single-sourced.
+/// Forwards magnify / ⌘+scroll to the canvas so zoom stays single-sourced
+/// (scroll view would otherwise handle pinch with allowsMagnification).
 @interface SIForwardingScrollView : NSScrollView
 @property(nonatomic, weak) ImageCanvasView* canvas;
 @end
@@ -47,6 +60,7 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 
 @end
 
+/// NSImageView that refuses first responder so clicks return keyboard to canvas.
 @interface SIImageHostView : NSImageView
 @property(nonatomic, weak) ImageCanvasView* canvas;
 @end
@@ -58,13 +72,15 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 }
 
 - (void)mouseDown:(NSEvent*)event {
+  // Issue #3: without this, clicks steal FR and arrow keys stop working.
   [self.window makeFirstResponder:self.canvas];
   [super mouseDown:event];
 }
 
 @end
 
-/// Fills the clip when the image is smaller; clicks restore canvas first responder.
+/// Document view: at least as large as the clip so small images can be centered.
+/// Clicks on dark padding also restore canvas first responder.
 @interface SIDocumentContainer : NSView
 @property(nonatomic, weak) ImageCanvasView* canvas;
 @end
@@ -399,6 +415,7 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 }
 
 - (void)zoomIn {
+  // Any manual zoom leaves sticky fit so resize no longer re-fits.
   self.fitToView = NO;
   [self applyZoom:self.zoomFactor * kZoomStep
        scrollMode:SIDocScrollPreserveVisibleCenter];

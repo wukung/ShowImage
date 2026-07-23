@@ -9,11 +9,19 @@
 
 #include <string>
 
+// Main window composition:
+//   contentView
+//     ├─ canvas / welcomeView (same frame above status)
+//     └─ statusLabel (bottom strip)
+// C++ ImageList is owned with new/delete (cannot put non-POD C++ in @interface).
+
 @interface MainWindowController ()
 @property(nonatomic, strong) ImageCanvasView* canvas;
 @property(nonatomic, strong) NSTextField* statusLabel;
+/// Shown when no image is open; Open File / Open Folder entry points.
 @property(nonatomic, strong) NSView* welcomeView;
 @property(nonatomic, strong) SandboxAccess* sandboxAccess;
+/// Heap-allocated C++ playlist; freed in dealloc.
 @property(nonatomic, assign) showimage::ImageList* imageList;
 @end
 
@@ -34,11 +42,13 @@
   window.collectionBehavior =
       NSWindowCollectionBehaviorFullScreenPrimary;
   window.minSize = NSMakeSize(320, 240);
+  // Keep the controller's window alive when closed via the traffic light if needed.
   window.releasedWhenClosed = NO;
 
   self = [super initWithWindow:window];
   if (self) {
     _sandboxAccess = [[SandboxAccess alloc] init];
+    // Manual ownership: matched delete in dealloc.
     _imageList = new showimage::ImageList();
     window.delegate = self;
     [self buildContentView];
@@ -199,6 +209,7 @@
 }
 
 - (void)showWelcomeIfNeeded {
+  // Welcome and canvas share the same frame; only one is visible.
   const BOOL show = ![self hasOpenImage];
   self.welcomeView.hidden = !show;
   self.canvas.hidden = show;
@@ -210,6 +221,7 @@
 
 #pragma mark - Open
 
+// Open panel grants sandbox access to the selected file (user-selected).
 - (IBAction)openDocument:(id)sender {
   (void)sender;
   NSOpenPanel* panel = [NSOpenPanel openPanel];
@@ -221,7 +233,8 @@
   panel.prompt = @"Open";
 
   if (@available(macOS 11.0, *)) {
-    // Prefer UTTypes when available; keep permissive for ImageIO formats.
+    // Empty allowedContentTypes + allowsOtherFileTypes: accept ImageIO formats
+    // without maintaining a brittle UTI list (WebP/HEIC vary by OS version).
     panel.allowedContentTypes = @[];
     panel.allowsOtherFileTypes = YES;
   }
@@ -297,6 +310,7 @@
   [self.window makeKeyAndOrderFront:nil];
 }
 
+// Folder open is the reliable sandbox path for Previous/Next browsing.
 - (void)openFolderURL:(NSURL*)folderURL {
   [self.sandboxAccess stopAll];
   [self.sandboxAccess startAccessingURL:folderURL];
@@ -312,6 +326,7 @@
   [self displayCurrentImage];
 }
 
+// Probe whether the process can list a directory (sandbox may deny parent).
 - (BOOL)canListDirectory:(NSURL*)directoryURL {
   if (!directoryURL) {
     return NO;
