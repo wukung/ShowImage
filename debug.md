@@ -13,6 +13,78 @@ Severity guide (aligns with `AGENT.md` §8):
 
 ---
 
+## 2026-07-23 — Feature: welcome screen + sticky Fit to View
+
+### Change
+
+- Startup welcome overlay: Open File… / Open Folder… when no image is open.
+- `ImageCanvasView.fitToView`: resize re-fits while mode is active; cleared by manual zoom.
+- Status shows `Fit` vs `Zoom`.
+
+### Files
+
+- `src/MainWindowController.mm`, `src/ImageCanvasView.{h,mm}`, `design.md`
+
+### Status
+
+- implemented; review fixes applied (see next section)
+
+---
+
+## 2026-07-23 — Review: welcome + sticky fit (pass 1 → fixes)
+
+| ID | Severity | Summary | Fix | Status |
+|----|----------|---------|-----|--------|
+| W1 | medium | Fit from `-layout` forced subtree layout + always notified | Re-fit only on size change; no layoutSubtreeIfNeeded in layout; deferred notify | fixed |
+| W2 | medium | Welcome buttons duplicate menu key equivalents | Removed button keyEquivalents | fixed |
+| W3 | nit | Hard-coded welcome bg | Aligned to canvas 0.12 chrome | fixed |
+| W4 | nit | Fit gate checked only width | Require width and height | fixed |
+
+---
+
+## 2026-07-23 — Review: welcome + sticky fit (pass 2 → fix)
+
+| ID | Severity | Summary | Fix | Status |
+|----|----------|---------|-----|--------|
+| W5 | medium | Fit measured contentView.bounds lagging after resize | Use `scrollView.bounds` / canvas bounds via `fitVisibleSize` | fixed |
+| W1–W4 | — | Prior | verified | fixed |
+
+---
+
+## 2026-07-23 — Review: welcome + sticky fit (pass 3 → fixes)
+
+| ID | Severity | Summary | Fix | Status |
+|----|----------|---------|-----|--------|
+| W6 | medium | Document layout clip also used lagging contentView | `layoutDocument` uses `fitVisibleSize` | fixed |
+| W7 | high (bug) | Welcome labels unreadable in Light Mode on dark bg | Force DarkAqua appearance on welcome root | fixed |
+
+---
+
+## 2026-07-23 — Review: welcome + sticky fit (pass 4) — loop exit
+
+Result: **no medium+**. W1–W7 verified. Sticky fit + welcome ready for commit/PR when requested.
+
+---
+
+## 2026-07-23 — Comments pass on existing sources
+
+- Added file-level and key-logic comments across `include/`, `lib/`, and `src/`
+  (why / contracts / sandbox / zoom layout; English per AGENT §3.3).
+- No intentional behavior changes.
+- Review: **no medium+** (comment-only, accurate). Loop exit.
+- Status: local
+
+---
+
+## 2026-07-23 — App icon
+
+- Generated macOS-style rounded icon (landscape photo in frame on dark glass).
+- Assets: `resources/AppIcon-1024.png`, `resources/AppIcon.iconset/`, `resources/ShowImage.icns`
+- CMake POST_BUILD copies `ShowImage.icns` into the app bundle; Info.plist `CFBundleIconFile=ShowImage`
+- Status: implemented (local)
+
+---
+
 ## 2026-07-23 — PR #7 merged
 
 - PR: https://github.com/wukung/ShowImage/pull/7 → **MERGED** (`6a93c93`)

@@ -1,14 +1,19 @@
 #import "AppDelegate.h"
 #import "MainWindowController.h"
 
+// Lifecycle: one MainWindowController for the app. Finder "Open With" may call
+// openURLs before didFinishLaunching — those URLs are queued (issue #1).
+
 @interface AppDelegate ()
 @property(nonatomic, strong) MainWindowController* mainWindowController;
+/// URLs delivered before launch finishes; drained once in didFinishLaunching.
 @property(nonatomic, strong) NSMutableArray<NSURL*>* pendingOpenURLs;
 @property(nonatomic, assign) BOOL didFinishLaunching;
 @end
 
 @implementation AppDelegate
 
+// Lazy single controller — never replace an existing one after openURLs.
 - (MainWindowController*)ensureMainWindowController {
   if (!self.mainWindowController) {
     self.mainWindowController = [[MainWindowController alloc] init];
@@ -23,6 +28,7 @@
   [self.mainWindowController showWindow:nil];
   [self buildMainMenu];
 
+  // Apply any Finder/Dock opens that arrived before the window existed.
   if (self.pendingOpenURLs.count > 0) {
     NSArray<NSURL*>* urls = [self.pendingOpenURLs copy];
     [self.pendingOpenURLs removeAllObjects];
@@ -47,7 +53,7 @@
     return;
   }
 
-  // Before launch finishes, queue URLs so we do not create a controller that
+  // Before launch finishes, only queue — do not create a controller that
   // didFinishLaunching would later discard. Append if the system delivers
   // multiple openURL batches before launch completes.
   if (!self.didFinishLaunching) {
@@ -63,6 +69,8 @@
   [controller openURLs:urls];
 }
 
+// Programmatic menu (no MainMenu.xib). Actions land on the responder chain
+// (window controller / first responder).
 - (void)buildMainMenu {
   NSMenu* menubar = [[NSMenu alloc] initWithTitle:@""];
   NSApp.mainMenu = menubar;
@@ -118,7 +126,7 @@
                keyEquivalent:@"-"];
   [viewMenu addItem:[NSMenuItem separatorItem]];
 
-  // macOS standard: Control-Command-F for Enter Full Screen (#5).
+  // macOS standard: Control-Command-F (not plain ⌘F, which is usually Find).
   NSMenuItem* fullScreenItem =
       [viewMenu addItemWithTitle:@"Enter Full Screen"
                           action:@selector(toggleFullScreen:)

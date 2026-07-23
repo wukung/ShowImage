@@ -39,11 +39,12 @@ function(showimage_configure_app_bundle target)
     target_sources(${target} PRIVATE "${ENTITLEMENTS}")
   endif()
 
-  # Copy any loose resources into the bundle (optional assets folder).
+  # App icon metadata (actual copy is in src/CMakeLists.txt — same dir as target).
   set(RESOURCES_DIR "${CMAKE_SOURCE_DIR}/resources")
-  if(EXISTS "${RESOURCES_DIR}/Assets.xcassets")
-    target_sources(${target} PRIVATE "${RESOURCES_DIR}/Assets.xcassets")
-    set_source_files_properties("${RESOURCES_DIR}/Assets.xcassets"
-      PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+  set(APP_ICNS "${RESOURCES_DIR}/ShowImage.icns")
+  if(EXISTS "${APP_ICNS}")
+    set_target_properties(${target} PROPERTIES
+      MACOSX_BUNDLE_ICON_FILE "ShowImage"
+    )
   endif()
 endfunction()

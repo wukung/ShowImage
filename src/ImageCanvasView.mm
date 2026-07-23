@@ -1,9 +1,21 @@
 #import "ImageCanvasView.h"
 
+// Image display + zoom/pan.
+//
+// Layout model:
+//   ImageCanvasView
+//     └─ SIForwardingScrollView
+//          └─ SIDocumentContainer  (document view; grows with max(image, clip))
+//               └─ SIImageHostView (scaled image frame, centered in container)
+//
+// Zoom is frame-based only (imageView.frame = pixels * zoomFactor). We never
+// use NSScrollView.allowsMagnification (that desynced status % — issue #4).
+
 static const CGFloat kMinZoom = 0.05;
 static const CGFloat kMaxZoom = 32.0;
 static const CGFloat kZoomStep = 1.25;
 
+// How to place the scroll origin after changing document/image frames.
 typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   /// Scroll so the document/image center is in the middle of the clip.
   SIDocScrollCenter = 0,
@@ -13,7 +25,8 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   SIDocScrollClamp,
 };
 
-/// Forwards magnify / ⌘+scroll to the owning canvas so zoom stays single-sourced.
+/// Forwards magnify / ⌘+scroll to the canvas so zoom stays single-sourced
+/// (scroll view would otherwise handle pinch with allowsMagnification).
 @interface SIForwardingScrollView : NSScrollView
 @property(nonatomic, weak) ImageCanvasView* canvas;
 @end
@@ -47,6 +60,7 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 
 @end
 
+/// NSImageView that refuses first responder so clicks return keyboard to canvas.
 @interface SIImageHostView : NSImageView
 @property(nonatomic, weak) ImageCanvasView* canvas;
 @end
@@ -58,13 +72,15 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 }
 
 - (void)mouseDown:(NSEvent*)event {
+  // Issue #3: without this, clicks steal FR and arrow keys stop working.
   [self.window makeFirstResponder:self.canvas];
   [super mouseDown:event];
 }
 
 @end
 
-/// Fills the clip when the image is smaller; clicks restore canvas first responder.
+/// Document view: at least as large as the clip so small images can be centered.
+/// Clicks on dark padding also restore canvas first responder.
 @interface SIDocumentContainer : NSView
 @property(nonatomic, weak) ImageCanvasView* canvas;
 @end
@@ -89,6 +105,9 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 @property(nonatomic, strong) SIImageHostView* imageView;
 @property(nonatomic, assign) CGFloat zoomFactor;
 @property(nonatomic, assign) NSSize imagePixelSize;
+@property(nonatomic, assign, readwrite, getter=isFitToView) BOOL fitToView;
+/// Last canvas size used for sticky fit; only re-fit when this changes.
+@property(nonatomic, assign) NSSize lastFitLayoutSize;
 @end
 
 @implementation ImageCanvasView
@@ -111,6 +130,7 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 
 - (void)commonInit {
   _zoomFactor = 1.0;
+  _fitToView = NO;
   self.wantsLayer = YES;
   self.layer.backgroundColor = NSColor.windowBackgroundColor.CGColor;
 
@@ -152,8 +172,36 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 - (void)layout {
   [super layout];
   self.scrollView.frame = self.bounds;
-  // Keep image centered (or scroll extents correct) when the window resizes.
-  [self layoutDocumentWithScrollMode:SIDocScrollClamp];
+
+  const NSSize size = self.bounds.size;
+  if (self.fitToView && self.imagePixelSize.width > 0 &&
+      self.imagePixelSize.height > 0) {
+    // Sticky Fit to View: recompute only when the canvas size actually changes.
+    const BOOL sizeChanged =
+        fabs(size.width - self.lastFitLayoutSize.width) > 0.5 ||
+        fabs(size.height - self.lastFitLayoutSize.height) > 0.5;
+    if (sizeChanged) {
+      const CGFloat previousZoom = self.zoomFactor;
+      // applyFit updates lastFitLayoutSize after measuring scrollView.bounds.
+      [self applyFitToCurrentBoundsNotifyingDelegate:NO];
+      if (fabs(self.zoomFactor - previousZoom) > 1e-6 &&
+          [self.delegate
+              respondsToSelector:@selector(imageCanvasViewDidChangeZoom:)]) {
+        // Defer status updates out of the layout pass.
+        ImageCanvasView* canvas = self;
+        dispatch_async(dispatch_get_main_queue(), ^{
+          if ([canvas.delegate
+                  respondsToSelector:@selector(imageCanvasViewDidChangeZoom:)]) {
+            [canvas.delegate imageCanvasViewDidChangeZoom:canvas];
+          }
+        });
+      }
+    } else {
+      [self layoutDocumentWithScrollMode:SIDocScrollCenter];
+    }
+  } else {
+    [self layoutDocumentWithScrollMode:SIDocScrollClamp];
+  }
 }
 
 - (BOOL)acceptsFirstResponder {
@@ -179,6 +227,7 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
     self.imageView.frame = NSZeroRect;
     self.documentContainer.frame = NSZeroRect;
     self.zoomFactor = 1.0;
+    self.fitToView = NO;
     [self.scrollView.contentView setBoundsOrigin:NSZeroPoint];
     [self.scrollView reflectScrolledClipView:self.scrollView.contentView];
     return;
@@ -189,6 +238,7 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   if (fitToView) {
     [self zoomToFit];
   } else {
+    self.fitToView = NO;
     [self applyZoom:1.0 scrollMode:SIDocScrollCenter];
   }
 }
@@ -218,11 +268,9 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   const NSSize imageSize = NSMakeSize(self.imagePixelSize.width * zoom,
                                       self.imagePixelSize.height * zoom);
 
-  // Use the clip view's visible size (content area inside scrollers).
-  NSSize clipSize = self.scrollView.contentView.bounds.size;
-  if (clipSize.width < 1 || clipSize.height < 1) {
-    clipSize = self.scrollView.bounds.size;
-  }
+  // Prefer scrollView.bounds (matches sticky fit); contentView.bounds can lag
+  // one pass after a resize and leave an oversized document + phantom scrollers.
+  NSSize clipSize = [self fitVisibleSize];
 
   const NSSize docSize =
       NSMakeSize(fmax(imageSize.width, clipSize.width),
@@ -285,6 +333,44 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   }
 }
 
+/// Visible size for fit. Prefer the scroll view frame we just assigned (reliable
+/// during -layout); contentView.bounds can lag one layout pass after a resize.
+- (NSSize)fitVisibleSize {
+  NSSize visible = self.scrollView.bounds.size;
+  if (visible.width <= 1 || visible.height <= 1) {
+    visible = self.bounds.size;
+  }
+  return visible;
+}
+
+/// Recompute zoom so the image fits the current clip; keeps fitToView sticky.
+/// Does not call layoutSubtreeIfNeeded when invoked from -layout.
+- (void)applyFitToCurrentBoundsNotifyingDelegate:(BOOL)notify {
+  if (self.imagePixelSize.width <= 0 || self.imagePixelSize.height <= 0) {
+    return;
+  }
+
+  const NSSize visible = [self fitVisibleSize];
+
+  CGFloat zoom = 1.0;
+  if (visible.width > 1 && visible.height > 1) {
+    const CGFloat sx = visible.width / self.imagePixelSize.width;
+    const CGFloat sy = visible.height / self.imagePixelSize.height;
+    zoom = fmin(sx, sy);
+  }
+  zoom = fmax(kMinZoom, fmin(kMaxZoom, zoom));
+
+  self.fitToView = YES;
+  self.zoomFactor = zoom;
+  self.lastFitLayoutSize = self.bounds.size;
+  [self layoutDocumentWithScrollMode:SIDocScrollCenter];
+
+  if (notify &&
+      [self.delegate respondsToSelector:@selector(imageCanvasViewDidChangeZoom:)]) {
+    [self.delegate imageCanvasViewDidChangeZoom:self];
+  }
+}
+
 - (void)keyDown:(NSEvent*)event {
   NSString* chars = event.charactersIgnoringModifiers;
   if (chars.length == 0) {
@@ -329,16 +415,20 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
 }
 
 - (void)zoomIn {
+  // Any manual zoom leaves sticky fit so resize no longer re-fits.
+  self.fitToView = NO;
   [self applyZoom:self.zoomFactor * kZoomStep
        scrollMode:SIDocScrollPreserveVisibleCenter];
 }
 
 - (void)zoomOut {
+  self.fitToView = NO;
   [self applyZoom:self.zoomFactor / kZoomStep
        scrollMode:SIDocScrollPreserveVisibleCenter];
 }
 
 - (void)zoomActualSize {
+  self.fitToView = NO;
   [self applyZoom:1.0 scrollMode:SIDocScrollCenter];
 }
 
@@ -346,26 +436,20 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   if (self.imagePixelSize.width <= 0 || self.imagePixelSize.height <= 0) {
     return;
   }
-  // Ensure scroll view has a real size before measuring the clip.
+  // Measure clip after a clean layout pass when not already inside -layout.
   [self layoutSubtreeIfNeeded];
-  const NSSize visible = self.scrollView.contentView.bounds.size;
-  if (visible.width <= 1 || visible.height <= 1) {
-    [self applyZoom:1.0 scrollMode:SIDocScrollCenter];
-    return;
-  }
-
-  const CGFloat sx = visible.width / self.imagePixelSize.width;
-  const CGFloat sy = visible.height / self.imagePixelSize.height;
-  // Fit entirely inside the window (no scrollbars at fit zoom).
-  [self applyZoom:fmin(sx, sy) scrollMode:SIDocScrollCenter];
+  self.scrollView.frame = self.bounds;
+  [self applyFitToCurrentBoundsNotifyingDelegate:YES];
 }
 
 - (void)magnifyBy:(CGFloat)delta {
+  self.fitToView = NO;
   [self applyZoom:self.zoomFactor * delta
        scrollMode:SIDocScrollPreserveVisibleCenter];
 }
 
 - (void)magnifyWithEvent:(NSEvent*)event {
+  self.fitToView = NO;
   const CGFloat factor = event.magnification + 1.0;
   [self applyZoom:self.zoomFactor * factor
        scrollMode:SIDocScrollPreserveVisibleCenter];
@@ -377,6 +461,7 @@ typedef NS_ENUM(NSInteger, SIDocScrollMode) {
   if (event.modifierFlags & NSEventModifierFlagCommand) {
     const CGFloat delta = event.scrollingDeltaY;
     if (fabs(delta) > 0.1) {
+      self.fitToView = NO;
       const CGFloat factor = (delta > 0) ? 1.05 : (1.0 / 1.05);
       [self applyZoom:self.zoomFactor * factor
            scrollMode:SIDocScrollPreserveVisibleCenter];

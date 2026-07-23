@@ -3,8 +3,11 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// Main window: welcome overlay, image canvas, status bar, open/navigate/zoom.
+/// Owns the C++ ImageList (new in init / delete in dealloc) and SandboxAccess.
 @interface MainWindowController : NSWindowController <NSWindowDelegate, ImageCanvasViewDelegate>
 
+/// Open file or directory URLs from Open panels, Dock, or Finder.
 - (void)openURLs:(NSArray<NSURL*>*)urls;
 
 - (IBAction)openDocument:(nullable id)sender;

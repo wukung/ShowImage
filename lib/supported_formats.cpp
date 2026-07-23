@@ -6,6 +6,7 @@
 namespace showimage {
 namespace {
 
+// Locale-independent ASCII lowercasing for extension comparison.
 std::string ToLower(std::string_view input) {
   std::string out;
   out.reserve(input.size());
@@ -18,7 +19,8 @@ std::string ToLower(std::string_view input) {
 }  // namespace
 
 const std::vector<std::string>& SupportedExtensions() {
-  // ImageIO / NSImage common set on macOS 12+.
+  // Keep in sync with formats ImageIO/NSImage typically open on macOS 12+.
+  // Not exhaustive of every ImageIO UTI — extension filter for directory scan.
   static const std::vector<std::string> kExts = {
       "jpg", "jpeg", "png", "gif", "tif", "tiff", "bmp", "ico",
       "heic", "heif", "webp", "jp2", "j2k", "jpf", "exr", "hdr",
@@ -27,6 +29,7 @@ const std::vector<std::string>& SupportedExtensions() {
 }
 
 std::string ExtensionOf(std::string_view path) {
+  // Use the last path component so directory dots are ignored.
   const auto slash = path.find_last_of("/\\");
   const auto base =
       (slash == std::string_view::npos) ? path : path.substr(slash + 1);
@@ -40,7 +43,7 @@ std::string ExtensionOf(std::string_view path) {
 bool IsSupportedImagePath(std::string_view pathOrExtension) {
   std::string ext = ExtensionOf(pathOrExtension);
   if (ext.empty()) {
-    // Treat as bare extension (with or without leading dot).
+    // Allow callers to pass "png" or ".png" as a bare extension.
     std::string_view view = pathOrExtension;
     if (!view.empty() && view.front() == '.') {
       view.remove_prefix(1);
@@ -52,6 +55,7 @@ bool IsSupportedImagePath(std::string_view pathOrExtension) {
 }
 
 std::string SupportedFormatsDescription() {
+  // Shown on the welcome screen / empty status — keep user-facing and short.
   return "JPEG, PNG, GIF, TIFF, BMP, HEIC/HEIF, WebP, JPEG 2000, and other "
          "formats supported by system ImageIO.";
 }
