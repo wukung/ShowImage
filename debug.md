@@ -66,6 +66,25 @@ Submit UI: https://github.com/wukung/ShowImage/pull/6/files
 
 ---
 
+## 2026-07-23 — PR #6 review (pass 2) + fix
+
+Reviewed commit: `43b5b7c`
+
+### Findings → fixes
+
+| ID | Severity | Summary | Location | Fix | Status |
+|----|----------|---------|----------|-----|--------|
+| P6-1..3 | — | Prior medium+ | — | verified fixed in pass 2 | fixed |
+| P6-5 | high (bug) | Non-Command wheel: canvas → scrollView → nextResponder canvas loop | `ImageCanvasView.mm` | non-Command uses `[super scrollWheel:]` only | fixed (local) |
+| P6-4 | low (nit) | Full Screen menu title | `AppDelegate.mm` | deferred | open |
+
+### Notes
+
+- Pass 2 closed P6-1..3; new P6-5 found on non-Command path.
+- Pass 3 re-review after push of P6-5.
+
+---
+
 ## Template (copy for new entries)
 
 ```markdown

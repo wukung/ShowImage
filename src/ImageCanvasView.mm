@@ -261,7 +261,10 @@ static const CGFloat kZoomStep = 1.25;
     }
     return;
   }
-  [self.scrollView scrollWheel:event];
+  // Do not call [scrollView scrollWheel:] here: if NSScrollView does not
+  // fully consume the event, nextResponder is this canvas and re-entry loops.
+  // Normal pan is handled when the event hits the scroll view first.
+  [super scrollWheel:event];
 }
 
 @end
