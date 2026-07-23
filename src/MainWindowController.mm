@@ -147,6 +147,10 @@
   }
   NSURL* url = urls.firstObject;
 
+  // Start security scope before directory probes (sandbox may hide metadata).
+  [self.sandboxAccess stopAll];
+  [self.sandboxAccess startAccessingURL:url];
+
   // Directory drops / Open With folder URLs (#2).
   BOOL isDirectory = NO;
   if (url.hasDirectoryPath) {
@@ -163,9 +167,6 @@
     [self.window makeKeyAndOrderFront:nil];
     return;
   }
-
-  [self.sandboxAccess stopAll];
-  [self.sandboxAccess startAccessingURL:url];
 
   const std::string path = url.path.UTF8String;
   self.imageList->SetSingleFile(path);

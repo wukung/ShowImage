@@ -3,7 +3,7 @@
 
 @interface AppDelegate ()
 @property(nonatomic, strong) MainWindowController* mainWindowController;
-@property(nonatomic, copy) NSArray<NSURL*>* pendingOpenURLs;
+@property(nonatomic, strong) NSMutableArray<NSURL*>* pendingOpenURLs;
 @property(nonatomic, assign) BOOL didFinishLaunching;
 @end
 
@@ -24,8 +24,8 @@
   [self buildMainMenu];
 
   if (self.pendingOpenURLs.count > 0) {
-    NSArray<NSURL*>* urls = self.pendingOpenURLs;
-    self.pendingOpenURLs = nil;
+    NSArray<NSURL*>* urls = [self.pendingOpenURLs copy];
+    [self.pendingOpenURLs removeAllObjects];
     [self.mainWindowController openURLs:urls];
   }
 }
@@ -48,9 +48,13 @@
   }
 
   // Before launch finishes, queue URLs so we do not create a controller that
-  // didFinishLaunching would later discard.
+  // didFinishLaunching would later discard. Append if the system delivers
+  // multiple openURL batches before launch completes.
   if (!self.didFinishLaunching) {
-    self.pendingOpenURLs = urls;
+    if (!self.pendingOpenURLs) {
+      self.pendingOpenURLs = [NSMutableArray array];
+    }
+    [self.pendingOpenURLs addObjectsFromArray:urls];
     return;
   }
 

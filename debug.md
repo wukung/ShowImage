@@ -43,6 +43,29 @@ Branch: `fix/review-bugs-1-5` · Commit: `87cedcc` · PR: https://github.com/wuk
 
 ---
 
+## 2026-07-23 — PR #6 review (pass 1) + fixes
+
+PR: https://github.com/wukung/ShowImage/pull/6  
+Reviewed commit: `87cedcc` · PENDING review id: `4761319988`  
+Submit UI: https://github.com/wukung/ShowImage/pull/6/files
+
+### Findings → fixes
+
+| ID | Severity | Summary | Location | Fix | Status |
+|----|----------|---------|----------|-----|--------|
+| P6-1 | high (bug) | ⌘+scroll infinite recurse when delta small/zero | `ImageCanvasView.mm` `scrollWheel:` | Always consume Command+scroll; never re-enter scroll view | fixed (local) |
+| P6-2 | medium | Directory probe before security scope may fail under sandbox | `MainWindowController.mm` `openURLs:` | `startAccessingURL` before `NSURLIsDirectoryKey` | fixed (local) |
+| P6-3 | medium | Pre-launch pending URLs last-write-wins | `AppDelegate.mm` | Append to `NSMutableArray` | fixed (local) |
+| P6-4 | low (nit) | Full Screen menu title never “Exit…” | `AppDelegate.mm` | deferred | open |
+
+### Notes
+
+- Pass 1 verdict: #1–#5 intent OK; merge blocked by P6-1 recursion.
+- Re-review required after push (AGENT §8) until no medium+.
+- Local branch also has docs commit `9cc1c47` (design/AGENT/debug) not yet on PR at review time.
+
+---
+
 ## Template (copy for new entries)
 
 ```markdown

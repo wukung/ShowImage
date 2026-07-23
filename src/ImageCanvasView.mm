@@ -251,13 +251,15 @@ static const CGFloat kZoomStep = 1.25;
 }
 
 - (void)scrollWheel:(NSEvent*)event {
+  // Command+scroll is zoom-only. Always consume it — never bounce back into
+  // SIForwardingScrollView (that re-forwards Command wheels and can recurse).
   if (event.modifierFlags & NSEventModifierFlagCommand) {
     const CGFloat delta = event.scrollingDeltaY;
     if (fabs(delta) > 0.1) {
       const CGFloat factor = (delta > 0) ? 1.05 : (1.0 / 1.05);
       [self applyZoom:self.zoomFactor * factor];
-      return;
     }
+    return;
   }
   [self.scrollView scrollWheel:event];
 }
