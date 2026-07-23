@@ -17,6 +17,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, weak, nullable) id<ImageCanvasViewDelegate> delegate;
 @property(nonatomic, strong, nullable) NSImage* image;
 @property(nonatomic, assign, readonly) CGFloat zoomFactor;
+/// YES while the user is in sticky Zoom to Fit (recomputed on window resize).
+@property(nonatomic, assign, readonly, getter=isFitToView) BOOL fitToView;
 
 - (void)setImage:(nullable NSImage*)image fitToView:(BOOL)fitToView;
 - (void)zoomIn;

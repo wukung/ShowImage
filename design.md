@@ -3,7 +3,7 @@
 > Snapshot of the **current** architecture and behavior for later sessions.
 > Update this file when structure, responsibilities, or product constraints change.
 >
-> Last aligned with: `master` @ `6a93c93` (PR #7 merged: center image + review loop rule).
+> Last aligned with: welcome screen + sticky Fit-to-View on resize (post PR #7).
 > Repo: https://github.com/wukung/ShowImage
 
 ---
@@ -23,11 +23,13 @@
 
 **v1 features**
 
+- Startup **welcome screen**: Open File… / Open Folder… (also menus / Finder open)
 - Open file / open folder
 - Previous / next within a folder (wrap-around)
 - Zoom: fit, actual size, in/out (menu, keys, pinch, ⌘+scroll)
+- **Sticky Fit to View**: while fit mode is active, window resize re-fits the image
 - Full screen (⌃⌘F)
-- Status bar: filename, pixel size, zoom %, index
+- Status bar: filename, pixel size, zoom % (Fit/Zoom), index
 
 **Explicit non-goals (for now)**
 
@@ -148,12 +150,13 @@ ShowImage/
 
 ### 5.2 MainWindowController
 
-- Owns window, `ImageCanvasView`, status label, `SandboxAccess`, and a **heap** `showimage::ImageList*` (`new` in `init`, `delete` in `dealloc`).
+- Owns window, `ImageCanvasView`, status label, **welcome overlay**, `SandboxAccess`, and a **heap** `showimage::ImageList*` (`new` in `init`, `delete` in `dealloc`).
+- **Welcome view** shown when no image is open; buttons call `openDocument:` / `openFolder:`. Hidden after a successful open (or Finder Open With).
 - Actions: open file, open folder, prev/next, zoom*, implements `ImageCanvasViewDelegate`.
 - `openURLs:`:
   - Directory → `openFolderURL:`
   - File → sandbox start + `SetSingleFile` + best-effort parent `ScanDirectorySelecting` if listable
-- Status string: name · WxH · zoom% · index/total (hint if total ≤ 1)
+- Status string: name · WxH · zoom% (Fit|Zoom) · index/total
 
 ### 5.3 ImageCanvasView
 
@@ -161,6 +164,7 @@ ShowImage/
 - **Center when smaller:** document size = `max(scaledImage, clipView)` per axis; image frame centered (integral origin).
 - **Scroll when larger:** overflowing axes grow the document → axis scrollers (`autohidesScrollers`).
 - **Zoom scroll:** open / fit / actual-size **re-center**; incremental zoom **preserves** viewport focus on the image.
+- **`fitToView` sticky mode:** set by open-with-fit / Zoom to Fit; cleared by zoom in/out, actual size, pinch, ⌘+scroll. While sticky, `layout` re-runs fit so resize keeps Fit to View.
 - **Single zoom system:** frame scale via `zoomFactor`; `allowsMagnification = NO`.
 - Container / image / scroll view restore canvas first responder on click.
 - Keyboard on canvas: arrows, Space/N, P, +/-/0/9. GIF animates.
@@ -274,7 +278,7 @@ Menu / key / pinch / ⌘+scroll
 From initial code review (suggestions / nits not all fixed):
 
 1. **Sandbox folder browse** after single-file open is best-effort; **Open Folder…** is the reliable path.
-2. **No sticky fit-on-resize** — zoom-to-fit is one-shot at load/menu.
+2. ~~No sticky fit-on-resize~~ — **fixed**: sticky `fitToView` mode.
 3. **Retina “100%”** is 1 image pixel = 1 point (not device pixel).
 4. **Main-thread full decode** — large HEIC/TIFF can freeze UI.
 5. **Sort order** is C++ string byte order, not Finder natural sort.

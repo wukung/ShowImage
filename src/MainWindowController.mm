@@ -12,6 +12,7 @@
 @interface MainWindowController ()
 @property(nonatomic, strong) ImageCanvasView* canvas;
 @property(nonatomic, strong) NSTextField* statusLabel;
+@property(nonatomic, strong) NSView* welcomeView;
 @property(nonatomic, strong) SandboxAccess* sandboxAccess;
 @property(nonatomic, assign) showimage::ImageList* imageList;
 @end
@@ -42,6 +43,7 @@
     window.delegate = self;
     [self buildContentView];
     [window center];
+    [self showWelcomeIfNeeded];
     [self updateStatus];
   }
   return self;
@@ -74,9 +76,104 @@
   self.statusLabel.autoresizingMask =
       NSViewWidthSizable | NSViewMinYMargin;
 
+  self.welcomeView = [self buildWelcomeView];
+  self.welcomeView.autoresizingMask =
+      NSViewWidthSizable | NSViewHeightSizable;
+
   [content addSubview:self.canvas];
   [content addSubview:self.statusLabel];
+  [content addSubview:self.welcomeView];
   [self layoutChrome];
+}
+
+- (NSView*)buildWelcomeView {
+  NSView* root = [[NSView alloc] initWithFrame:NSZeroRect];
+  root.wantsLayer = YES;
+  // Match canvas dark chrome; force dark appearance so semantic label colors
+  // stay readable when the system is in Light Mode.
+  if (@available(macOS 10.14, *)) {
+    root.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+  }
+  root.layer.backgroundColor = [NSColor colorWithWhite:0.12 alpha:1.0].CGColor;
+
+  NSStackView* stack = [[NSStackView alloc] initWithFrame:NSZeroRect];
+  stack.orientation = NSUserInterfaceLayoutOrientationVertical;
+  stack.alignment = NSLayoutAttributeCenterX;
+  stack.spacing = 16;
+  stack.translatesAutoresizingMaskIntoConstraints = NO;
+
+  NSTextField* title = [NSTextField labelWithString:@"ShowImage"];
+  title.font = [NSFont systemFontOfSize:28 weight:NSFontWeightSemibold];
+  title.textColor = NSColor.labelColor;
+  title.alignment = NSTextAlignmentCenter;
+
+  NSTextField* subtitle =
+      [NSTextField labelWithString:@"Open an image file or a folder to browse."];
+  subtitle.font = [NSFont systemFontOfSize:14];
+  subtitle.textColor = NSColor.secondaryLabelColor;
+  subtitle.alignment = NSTextAlignmentCenter;
+
+  NSTextField* formats = [NSTextField wrappingLabelWithString:
+      @(showimage::SupportedFormatsDescription().c_str())];
+  formats.font = [NSFont systemFontOfSize:12];
+  formats.textColor = NSColor.tertiaryLabelColor;
+  formats.alignment = NSTextAlignmentCenter;
+  formats.preferredMaxLayoutWidth = 420;
+  formats.maximumNumberOfLines = 4;
+
+  // Shortcuts come from the main menu only (avoid duplicate key equivalents).
+  NSButton* openFile =
+      [NSButton buttonWithTitle:@"Open File…"
+                         target:self
+                         action:@selector(openDocument:)];
+  if (@available(macOS 11.0, *)) {
+    openFile.controlSize = NSControlSizeLarge;
+  }
+
+  NSButton* openFolder =
+      [NSButton buttonWithTitle:@"Open Folder…"
+                         target:self
+                         action:@selector(openFolder:)];
+  if (@available(macOS 11.0, *)) {
+    openFolder.controlSize = NSControlSizeLarge;
+  }
+
+  NSStackView* buttons = [[NSStackView alloc] initWithFrame:NSZeroRect];
+  buttons.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+  buttons.spacing = 12;
+  buttons.alignment = NSLayoutAttributeCenterY;
+  [buttons addArrangedSubview:openFile];
+  [buttons addArrangedSubview:openFolder];
+
+  NSTextField* hint = [NSTextField
+      labelWithString:@"⌘O Open File   ·   ⇧⌘O Open Folder"];
+  hint.font = [NSFont monospacedDigitSystemFontOfSize:11
+                                               weight:NSFontWeightRegular];
+  hint.textColor = NSColor.tertiaryLabelColor;
+  hint.alignment = NSTextAlignmentCenter;
+
+  [stack addArrangedSubview:title];
+  [stack addArrangedSubview:subtitle];
+  [stack addArrangedSubview:formats];
+  [stack addArrangedSubview:buttons];
+  [stack addArrangedSubview:hint];
+
+  // Extra spacing before buttons
+  [stack setCustomSpacing:24 afterView:formats];
+
+  [root addSubview:stack];
+  [NSLayoutConstraint activateConstraints:@[
+    [stack.centerXAnchor constraintEqualToAnchor:root.centerXAnchor],
+    [stack.centerYAnchor constraintEqualToAnchor:root.centerYAnchor],
+    [stack.leadingAnchor
+        constraintGreaterThanOrEqualToAnchor:root.leadingAnchor
+                                    constant:40],
+    [stack.trailingAnchor
+        constraintLessThanOrEqualToAnchor:root.trailingAnchor
+                                 constant:-40],
+  ]];
+
+  return root;
 }
 
 - (void)layoutChrome {
@@ -85,13 +182,30 @@
   NSRect bounds = content.bounds;
   self.statusLabel.frame =
       NSMakeRect(0, 0, bounds.size.width, statusH);
-  self.canvas.frame =
+  const NSRect mainRect =
       NSMakeRect(0, statusH, bounds.size.width, bounds.size.height - statusH);
+  self.canvas.frame = mainRect;
+  self.welcomeView.frame = mainRect;
 }
 
 - (void)windowDidResize:(NSNotification*)notification {
   (void)notification;
   [self layoutChrome];
+}
+
+- (BOOL)hasOpenImage {
+  return self.imageList != nullptr && !self.imageList->Empty() &&
+         self.imageList->Current().has_value();
+}
+
+- (void)showWelcomeIfNeeded {
+  const BOOL show = ![self hasOpenImage];
+  self.welcomeView.hidden = !show;
+  self.canvas.hidden = show;
+  if (show) {
+    self.window.title = @"ShowImage";
+    self.window.representedURL = nil;
+  }
 }
 
 #pragma mark - Open
@@ -191,6 +305,7 @@
       self.imageList->ScanDirectory(folderURL.path.UTF8String);
   if (count == 0) {
     self.canvas.image = nil;
+    [self showWelcomeIfNeeded];
     [self updateStatusWithMessage:@"No supported images in this folder."];
     return;
   }
@@ -258,8 +373,8 @@
   auto current = self.imageList->Current();
   if (!current) {
     self.canvas.image = nil;
-    self.window.title = @"ShowImage";
-    [self updateStatusWithMessage:@"No image open. File → Open… or Open Folder…"];
+    [self showWelcomeIfNeeded];
+    [self updateStatusWithMessage:@"No image open. Choose Open File… or Open Folder…"];
     return;
   }
 
@@ -268,6 +383,8 @@
   NSImage* image = [ImageLoader imageAtURL:url error:&error];
   if (!image) {
     self.canvas.image = nil;
+    self.welcomeView.hidden = YES;
+    self.canvas.hidden = NO;
     self.window.title = @"ShowImage";
     NSString* msg =
         error.localizedDescription ?: @"Failed to load image.";
@@ -275,6 +392,8 @@
     return;
   }
 
+  self.welcomeView.hidden = YES;
+  self.canvas.hidden = NO;
   [self.canvas setImage:image fitToView:YES];
   self.window.representedURL = url;
   self.window.title = @(current->fileName.c_str());
@@ -286,8 +405,7 @@
   auto current = self.imageList->Current();
   if (!current) {
     [self updateStatusWithMessage:
-              [NSString stringWithFormat:@"Ready — %@",
-                                         @(showimage::SupportedFormatsDescription().c_str())]];
+              @"Choose Open File… or Open Folder… to begin"];
     return;
   }
 
@@ -297,10 +415,12 @@
   const NSInteger zoomPct =
       static_cast<NSInteger>(llround(self.canvas.zoomFactor * 100.0));
 
+  NSString* fitTag = self.canvas.isFitToView ? @"Fit" : @"Zoom";
   NSString* msg = [NSString
-      stringWithFormat:@"%@  •  %.0f×%.0f  •  %ld%%  •  %lu / %lu",
+      stringWithFormat:@"%@  •  %.0f×%.0f  •  %ld%% (%@)  •  %lu / %lu",
                        @(current->fileName.c_str()), px.width, px.height,
-                       (long)zoomPct, (unsigned long)idx, (unsigned long)total];
+                       (long)zoomPct, fitTag, (unsigned long)idx,
+                       (unsigned long)total];
   if (total <= 1) {
     msg = [msg stringByAppendingString:@"  •  Open Folder… for Previous/Next"];
   }

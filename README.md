@@ -4,9 +4,11 @@ A sandboxed macOS image viewer built with **CMake**, a **C++ core**, and a nativ
 
 ## Features (v1)
 
+- Startup screen to **Open File…** or **Open Folder…**
 - Open a single image or an entire folder
 - Browse **Previous / Next** within a folder (with wrap-around)
 - Zoom: fit, actual size, in/out (menu, `⌘+/-/0/9`, trackpad pinch, `⌘`+scroll)
+- **Fit to View** stays active when you resize the window (until you zoom manually)
 - Full Screen (`⌃⌘F` / View menu)
 - System ImageIO formats: JPEG, PNG, GIF, TIFF, BMP, HEIC/HEIF, WebP, JPEG 2000, and more
 - App Sandbox entitlements prepared for **Mac App Store** distribution
