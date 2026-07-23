@@ -109,6 +109,51 @@ AGENT §8 review loop for PR #6: **complete**.
 
 ---
 
+## 2026-07-23 — Feature: center image + axis scrollbars
+
+### Change
+
+- **Request:** Image centered in the view; show scrollbars only on axes that overflow the window.
+- **Implementation:** `ImageCanvasView` uses `SIDocumentContainer` as `documentView`. Document size is `max(scaled image, clip)` per axis; `imageView` centered inside. Resize clamps scroll.
+- **Files:** `src/ImageCanvasView.mm`, `MainWindowController.mm` (status non-selectable), `design.md` §5.3
+- **Status:** implemented (local)
+
+### Notes
+
+- Zoom-to-fit still fits entirely inside the clip (no bars at fit).
+- Scrollbars use `autohidesScrollers` (visible when content exceeds).
+
+---
+
+## 2026-07-23 — Code review: center image layout (pass 1 → fixes)
+
+### Findings → fixes
+
+| ID | Severity | Summary | Fix | Status |
+|----|----------|---------|-----|--------|
+| C1 | medium | `applyZoom` always re-centers; pan lost on zoom | Incremental zoom uses `SIDocScrollPreserveVisibleCenter`; fit/actual/open use Center | fixed |
+| C2 | medium | Padding clicks don’t restore first responder | `SIDocumentContainer` + `statusLabel.selectable = NO` | fixed |
+| C3 | low | Non-integral image origin | `floor` on center origin | fixed |
+| C4 | low | Nil image leaves stale scroll origin | Reset bounds origin + reflect | fixed |
+
+### Notes
+
+- Re-review required until no medium+.
+
+---
+
+## 2026-07-23 — Code review: center image layout (pass 2) — loop exit
+
+Result: **no medium+**. C1–C4 verified fixed.
+
+| Residual | Severity | Notes |
+|----------|----------|--------|
+| Non-integral pan origin after preserve zoom | nit | Optional floor on preserve/clamp origins |
+
+AGENT §8 review loop for center-layout change: **complete**.
+
+---
+
 ## Template (copy for new entries)
 
 ```markdown

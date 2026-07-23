@@ -61,6 +61,7 @@
 
   self.statusLabel = [[NSTextField alloc] initWithFrame:NSZeroRect];
   self.statusLabel.editable = NO;
+  self.statusLabel.selectable = NO;
   self.statusLabel.bezeled = NO;
   self.statusLabel.drawsBackground = YES;
   self.statusLabel.backgroundColor =

@@ -3,7 +3,7 @@
 > Snapshot of the **current** architecture and behavior for later sessions.
 > Update this file when structure, responsibilities, or product constraints change.
 >
-> Last aligned with: `master` @ `9a969eb` (PR #6 merged; issues #1–#5 closed).
+> Last aligned with: `master` + centered image layout in `ImageCanvasView` (post PR #6).
 > Repo: https://github.com/wukung/ShowImage
 
 ---
@@ -157,12 +157,13 @@ ShowImage/
 
 ### 5.3 ImageCanvasView
 
-- Dark scroll canvas + `NSImageView` document view.
-- **Single zoom system (bug #4):** frame scale of the image view via `zoomFactor`.  
-  `NSScrollView.allowsMagnification = NO`.
-- `SIForwardingScrollView` / `SIImageHostView` forward pinch and ⌘+scroll, refuse first responder, re-promote canvas on click (**bug #3**).
-- Keyboard on canvas: arrows, Space/N, P, +/-/0/9.
-- GIF: `imageView.animates = YES`.
+- Dark `NSScrollView` whose **document** is `SIDocumentContainer` (not the image alone).
+- **Center when smaller:** document size = `max(scaledImage, clipView)` per axis; image frame centered (integral origin).
+- **Scroll when larger:** overflowing axes grow the document → axis scrollers (`autohidesScrollers`).
+- **Zoom scroll:** open / fit / actual-size **re-center**; incremental zoom **preserves** viewport focus on the image.
+- **Single zoom system:** frame scale via `zoomFactor`; `allowsMagnification = NO`.
+- Container / image / scroll view restore canvas first responder on click.
+- Keyboard on canvas: arrows, Space/N, P, +/-/0/9. GIF animates.
 
 ### 5.4 ImageLoader
 
