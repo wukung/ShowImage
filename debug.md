@@ -13,6 +13,12 @@ Severity guide (aligns with `AGENT.md` §8):
 
 ---
 
+## 2026-07-23 — PR #7 merged
+
+- PR: https://github.com/wukung/ShowImage/pull/7 → **MERGED** (`6a93c93`)
+- Center image + axis scrollbars + review-loop AGENT rule on `master`
+- Local `master` fast-forwarded to `origin/master`
+
 ## 2026-07-23 — PR #6 merged
 
 - PR: https://github.com/wukung/ShowImage/pull/6 → **MERGED** (`9a969eb`)

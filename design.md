@@ -3,7 +3,7 @@
 > Snapshot of the **current** architecture and behavior for later sessions.
 > Update this file when structure, responsibilities, or product constraints change.
 >
-> Last aligned with: `master` + centered image layout in `ImageCanvasView` (post PR #6).
+> Last aligned with: `master` @ `6a93c93` (PR #7 merged: center image + review loop rule).
 > Repo: https://github.com/wukung/ShowImage
 
 ---
@@ -308,6 +308,7 @@ Fixed in PR path `fix/review-bugs-1-5` (issues #1–#5): launch race, directory 
 | GitHub | `https://github.com/wukung/ShowImage` |
 | Account used | `wukung` |
 | Issues #1–#5 | **Closed** (fixed in PR #6) |
-| PR #6 | **Merged** `9a969eb` — https://github.com/wukung/ShowImage/pull/6 |
+| PR #6 | Merged `9a969eb` |
+| PR #7 | **Merged** `6a93c93` — center image + AGENT review loop |
 
 When this doc drifts from the repo, update **§1–§8** and the “Last aligned with” line at the top.
