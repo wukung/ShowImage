@@ -4,9 +4,60 @@ static const CGFloat kMinZoom = 0.05;
 static const CGFloat kMaxZoom = 32.0;
 static const CGFloat kZoomStep = 1.25;
 
+/// Forwards magnify / ⌘+scroll to the owning canvas so zoom stays single-sourced.
+@interface SIForwardingScrollView : NSScrollView
+@property(nonatomic, weak) ImageCanvasView* canvas;
+@end
+
+@implementation SIForwardingScrollView
+
+- (void)magnifyWithEvent:(NSEvent*)event {
+  if (self.canvas) {
+    [self.canvas magnifyWithEvent:event];
+    return;
+  }
+  [super magnifyWithEvent:event];
+}
+
+- (void)scrollWheel:(NSEvent*)event {
+  if (self.canvas && (event.modifierFlags & NSEventModifierFlagCommand)) {
+    [self.canvas scrollWheel:event];
+    return;
+  }
+  [super scrollWheel:event];
+}
+
+- (BOOL)acceptsFirstResponder {
+  return NO;
+}
+
+- (void)mouseDown:(NSEvent*)event {
+  [self.window makeFirstResponder:self.canvas];
+  [super mouseDown:event];
+}
+
+@end
+
+@interface SIImageHostView : NSImageView
+@property(nonatomic, weak) ImageCanvasView* canvas;
+@end
+
+@implementation SIImageHostView
+
+- (BOOL)acceptsFirstResponder {
+  return NO;
+}
+
+- (void)mouseDown:(NSEvent*)event {
+  [self.window makeFirstResponder:self.canvas];
+  [super mouseDown:event];
+}
+
+@end
+
 @interface ImageCanvasView ()
-@property(nonatomic, strong) NSScrollView* scrollView;
-@property(nonatomic, strong) NSImageView* imageView;
+@property(nonatomic, strong) SIForwardingScrollView* scrollView;
+@property(nonatomic, strong) SIImageHostView* imageView;
 @property(nonatomic, assign) CGFloat zoomFactor;
 @property(nonatomic, assign) NSSize imagePixelSize;
 @end
@@ -34,24 +85,30 @@ static const CGFloat kZoomStep = 1.25;
   self.wantsLayer = YES;
   self.layer.backgroundColor = NSColor.windowBackgroundColor.CGColor;
 
-  _imageView = [[NSImageView alloc] initWithFrame:NSZeroRect];
-  _imageView.imageScaling = NSImageScaleAxesIndependently;
-  _imageView.imageAlignment = NSImageAlignCenter;
-  _imageView.animates = YES;  // GIF
+  SIImageHostView* imageHost = [[SIImageHostView alloc] initWithFrame:NSZeroRect];
+  imageHost.canvas = self;
+  imageHost.imageScaling = NSImageScaleAxesIndependently;
+  imageHost.imageAlignment = NSImageAlignCenter;
+  imageHost.animates = YES;  // GIF
+  // Keep keyboard navigation on the canvas after the user clicks the image (#3).
+  imageHost.refusesFirstResponder = YES;
+  _imageView = imageHost;
 
-  _scrollView = [[NSScrollView alloc] initWithFrame:self.bounds];
-  _scrollView.hasVerticalScroller = YES;
-  _scrollView.hasHorizontalScroller = YES;
-  _scrollView.autohidesScrollers = YES;
-  _scrollView.borderType = NSNoBorder;
-  _scrollView.drawsBackground = YES;
-  _scrollView.backgroundColor = [NSColor colorWithCalibratedWhite:0.12 alpha:1.0];
-  _scrollView.documentView = _imageView;
-  _scrollView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-  _scrollView.allowsMagnification = YES;
-  _scrollView.minMagnification = kMinZoom;
-  _scrollView.maxMagnification = kMaxZoom;
+  SIForwardingScrollView* scroll =
+      [[SIForwardingScrollView alloc] initWithFrame:self.bounds];
+  scroll.canvas = self;
+  scroll.hasVerticalScroller = YES;
+  scroll.hasHorizontalScroller = YES;
+  scroll.autohidesScrollers = YES;
+  scroll.borderType = NSNoBorder;
+  scroll.drawsBackground = YES;
+  scroll.backgroundColor = [NSColor colorWithWhite:0.12 alpha:1.0];
+  scroll.documentView = _imageView;
+  scroll.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+  // Single zoom system: frame-based only. Do not use scroll-view magnification (#4).
+  scroll.allowsMagnification = NO;
 
+  _scrollView = scroll;
   [self addSubview:_scrollView];
 }
 
@@ -62,6 +119,12 @@ static const CGFloat kZoomStep = 1.25;
 
 - (BOOL)acceptsFirstResponder {
   return YES;
+}
+
+- (void)mouseDown:(NSEvent*)event {
+  (void)event;
+  // Clicks on empty chrome (or if events bubble here) reclaim first responder.
+  [self.window makeFirstResponder:self];
 }
 
 - (void)setImage:(NSImage*)image {
@@ -101,8 +164,6 @@ static const CGFloat kZoomStep = 1.25;
   const NSSize size = NSMakeSize(self.imagePixelSize.width * zoom,
                                  self.imagePixelSize.height * zoom);
   self.imageView.frame = NSMakeRect(0, 0, size.width, size.height);
-  // Reset magnification so scroll view magnification doesn't compound with frame scaling.
-  self.scrollView.magnification = 1.0;
   [self.scrollView reflectScrolledClipView:self.scrollView.contentView];
 
   if ([self.delegate respondsToSelector:@selector(imageCanvasViewDidChangeZoom:)]) {
@@ -181,7 +242,6 @@ static const CGFloat kZoomStep = 1.25;
 }
 
 - (void)magnifyBy:(CGFloat)delta {
-  // delta is typically magnification - 1 from magnify gesture, or a factor.
   [self applyZoom:self.zoomFactor * delta];
 }
 
@@ -199,7 +259,7 @@ static const CGFloat kZoomStep = 1.25;
       return;
     }
   }
-  [super scrollWheel:event];
+  [self.scrollView scrollWheel:event];
 }
 
 @end

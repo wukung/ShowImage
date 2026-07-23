@@ -146,6 +146,24 @@
     return;
   }
   NSURL* url = urls.firstObject;
+
+  // Directory drops / Open With folder URLs (#2).
+  BOOL isDirectory = NO;
+  if (url.hasDirectoryPath) {
+    isDirectory = YES;
+  } else {
+    NSNumber* dirValue = nil;
+    if ([url getResourceValue:&dirValue forKey:NSURLIsDirectoryKey error:nil] &&
+        dirValue.boolValue) {
+      isDirectory = YES;
+    }
+  }
+  if (isDirectory) {
+    [self openFolderURL:url];
+    [self.window makeKeyAndOrderFront:nil];
+    return;
+  }
+
   [self.sandboxAccess stopAll];
   [self.sandboxAccess startAccessingURL:url];
 

@@ -72,7 +72,7 @@ open build-xcode/ShowImage.xcodeproj
 | `⌘+` / `⌘-` | Zoom in / out |
 | `⌘0` | Actual size |
 | `⌘9` | Zoom to fit |
-| `⌃⌘F` | Full Screen |
+| `⌃⌘F` | Full Screen (Control-Command-F) |
 
 ## App Sandbox notes
 
