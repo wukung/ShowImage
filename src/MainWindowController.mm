@@ -146,8 +146,27 @@
     return;
   }
   NSURL* url = urls.firstObject;
+
+  // Start security scope before directory probes (sandbox may hide metadata).
   [self.sandboxAccess stopAll];
   [self.sandboxAccess startAccessingURL:url];
+
+  // Directory drops / Open With folder URLs (#2).
+  BOOL isDirectory = NO;
+  if (url.hasDirectoryPath) {
+    isDirectory = YES;
+  } else {
+    NSNumber* dirValue = nil;
+    if ([url getResourceValue:&dirValue forKey:NSURLIsDirectoryKey error:nil] &&
+        dirValue.boolValue) {
+      isDirectory = YES;
+    }
+  }
+  if (isDirectory) {
+    [self openFolderURL:url];
+    [self.window makeKeyAndOrderFront:nil];
+    return;
+  }
 
   const std::string path = url.path.UTF8String;
   self.imageList->SetSingleFile(path);

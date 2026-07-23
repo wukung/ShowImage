@@ -21,6 +21,9 @@ ShowImage/
 ├── lib/                    # C++ core (image list, formats)
 ├── src/                    # AppKit UI (ObjC++)
 ├── resources/              # Info.plist, entitlements
+├── design.md               # Architecture snapshot (keep concise, in sync)
+├── AGENT.md                # Project rules for agents / contributors
+├── debug.md                # Review/bug findings and fix log
 └── README.md
 ```
 
@@ -30,6 +33,9 @@ ShowImage/
 | `lib/` | Static library `showimage_core` |
 | `src/` | `ShowImage.app` executable (MACOSX_BUNDLE) |
 | `resources/` | App Store metadata & sandbox entitlements |
+| `design.md` | Current design only; remove stale sections |
+| `AGENT.md` | Coding / sandbox / Git / review-loop rules |
+| `debug.md` | Issues found and modifications made |
 
 ## Requirements
 
@@ -72,7 +78,7 @@ open build-xcode/ShowImage.xcodeproj
 | `⌘+` / `⌘-` | Zoom in / out |
 | `⌘0` | Actual size |
 | `⌘9` | Zoom to fit |
-| `⌃⌘F` | Full Screen |
+| `⌃⌘F` | Full Screen (Control-Command-F) |
 
 ## App Sandbox notes
 

@@ -3,15 +3,31 @@
 
 @interface AppDelegate ()
 @property(nonatomic, strong) MainWindowController* mainWindowController;
+@property(nonatomic, strong) NSMutableArray<NSURL*>* pendingOpenURLs;
+@property(nonatomic, assign) BOOL didFinishLaunching;
 @end
 
 @implementation AppDelegate
 
+- (MainWindowController*)ensureMainWindowController {
+  if (!self.mainWindowController) {
+    self.mainWindowController = [[MainWindowController alloc] init];
+  }
+  return self.mainWindowController;
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification*)notification {
   (void)notification;
-  self.mainWindowController = [[MainWindowController alloc] init];
+  self.didFinishLaunching = YES;
+  [self ensureMainWindowController];
   [self.mainWindowController showWindow:nil];
   [self buildMainMenu];
+
+  if (self.pendingOpenURLs.count > 0) {
+    NSArray<NSURL*>* urls = [self.pendingOpenURLs copy];
+    [self.pendingOpenURLs removeAllObjects];
+    [self.mainWindowController openURLs:urls];
+  }
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender {
@@ -30,11 +46,21 @@
   if (urls.count == 0) {
     return;
   }
-  if (!self.mainWindowController) {
-    self.mainWindowController = [[MainWindowController alloc] init];
-    [self.mainWindowController showWindow:nil];
+
+  // Before launch finishes, queue URLs so we do not create a controller that
+  // didFinishLaunching would later discard. Append if the system delivers
+  // multiple openURL batches before launch completes.
+  if (!self.didFinishLaunching) {
+    if (!self.pendingOpenURLs) {
+      self.pendingOpenURLs = [NSMutableArray array];
+    }
+    [self.pendingOpenURLs addObjectsFromArray:urls];
+    return;
   }
-  [self.mainWindowController openURLs:urls];
+
+  MainWindowController* controller = [self ensureMainWindowController];
+  [controller showWindow:nil];
+  [controller openURLs:urls];
 }
 
 - (void)buildMainMenu {
@@ -91,9 +117,14 @@
                       action:@selector(zoomOut:)
                keyEquivalent:@"-"];
   [viewMenu addItem:[NSMenuItem separatorItem]];
-  [viewMenu addItemWithTitle:@"Enter Full Screen"
-                      action:@selector(toggleFullScreen:)
-               keyEquivalent:@"f"];
+
+  // macOS standard: Control-Command-F for Enter Full Screen (#5).
+  NSMenuItem* fullScreenItem =
+      [viewMenu addItemWithTitle:@"Enter Full Screen"
+                          action:@selector(toggleFullScreen:)
+                   keyEquivalent:@"f"];
+  fullScreenItem.keyEquivalentModifierMask =
+      NSEventModifierFlagControl | NSEventModifierFlagCommand;
 
   // Go
   NSMenuItem* goItem = [[NSMenuItem alloc] init];
