@@ -1,3 +1,11 @@
+
+## 2026-07-23 — PR #8 merged
+
+- PR: https://github.com/wukung/ShowImage/pull/8 → **MERGED**
+- Welcome screen, sticky Fit to View, app icon, source comments
+- Local `master` synced to `origin/master`
+
+
 # debug.md — Issues & fix log
 
 Running log of **problems found** (reviews, bugs, regressions) and **what was changed**.
@@ -65,6 +73,12 @@ Severity guide (aligns with `AGENT.md` §8):
 Result: **no medium+**. W1–W7 verified. Sticky fit + welcome ready for commit/PR when requested.
 
 ---
+
+## 2026-07-23 — PR #8 merged
+
+- PR: https://github.com/wukung/ShowImage/pull/8 → **MERGED**
+- Welcome screen, sticky Fit to View, app icon, source comments
+- Local `master` synced to `origin/master`
 
 ## 2026-07-23 — Comments pass on existing sources
 

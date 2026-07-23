@@ -3,7 +3,7 @@
 > Snapshot of the **current** architecture and behavior for later sessions.
 > Update this file when structure, responsibilities, or product constraints change.
 >
-> Last aligned with: welcome screen + sticky Fit-to-View on resize (post PR #7).
+> Last aligned with: `master` after PR #8 (welcome, sticky fit, icon, comments).
 > Repo: https://github.com/wukung/ShowImage
 
 ---
