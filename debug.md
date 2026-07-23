@@ -13,6 +13,13 @@ Severity guide (aligns with `AGENT.md` §8):
 
 ---
 
+## 2026-07-23 — PR #6 merged
+
+- PR: https://github.com/wukung/ShowImage/pull/6 → **MERGED** (`9a969eb`)
+- Pending review `4761319988` submitted as **COMMENT** (GitHub blocks self-APPROVE)
+- Issues **#1–#5** closed by merge
+- Local `master` fast-forwarded to match `origin/master`
+
 ## 2026-07-23 — Initial code review (f7ec9a6) + fixes (PR #6)
 
 Branch: `fix/review-bugs-1-5` · Commit: `87cedcc` · PR: https://github.com/wukung/ShowImage/pull/6

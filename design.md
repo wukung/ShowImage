@@ -3,7 +3,7 @@
 > Snapshot of the **current** architecture and behavior for later sessions.
 > Update this file when structure, responsibilities, or product constraints change.
 >
-> Last aligned with: branch `fix/review-bugs-1-5` (post review bugs #1–#5).
+> Last aligned with: `master` @ `9a969eb` (PR #6 merged; issues #1–#5 closed).
 > Repo: https://github.com/wukung/ShowImage
 
 ---
@@ -306,7 +306,7 @@ Fixed in PR path `fix/review-bugs-1-5` (issues #1–#5): launch race, directory 
 |------|--------|
 | GitHub | `https://github.com/wukung/ShowImage` |
 | Account used | `wukung` |
-| Issues for review bugs | #1–#5 |
-| PR fixing them | https://github.com/wukung/ShowImage/pull/6 (branch `fix/review-bugs-1-5`) |
+| Issues #1–#5 | **Closed** (fixed in PR #6) |
+| PR #6 | **Merged** `9a969eb` — https://github.com/wukung/ShowImage/pull/6 |
 
 When this doc drifts from the repo, update **§1–§8** and the “Last aligned with” line at the top.
