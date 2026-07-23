@@ -3,7 +3,7 @@
 > Snapshot of the **current** architecture and behavior for later sessions.
 > Update this file when structure, responsibilities, or product constraints change.
 >
-> Last aligned with: `master` after PR #8 (welcome, sticky fit, icon, comments).
+> Last aligned with: standard title bar (no content under title; filename visible).
 > Repo: https://github.com/wukung/ShowImage
 
 ---
@@ -151,12 +151,15 @@ ShowImage/
 ### 5.2 MainWindowController
 
 - Owns window, `ImageCanvasView`, status label, **welcome overlay**, `SandboxAccess`, and a **heap** `showimage::ImageList*` (`new` in `init`, `delete` in `dealloc`).
+- **Standard title bar** (not full-size content / not transparent): filename stays readable; image does not draw under traffic lights.
+- Layout uses `contentView.bounds` (content coordinates) for canvas, welcome, and status strip — not `contentLayoutRect` (window coordinates).
 - **Welcome view** shown when no image is open; buttons call `openDocument:` / `openFolder:`. Hidden after a successful open (or Finder Open With).
 - Actions: open file, open folder, prev/next, zoom*, implements `ImageCanvasViewDelegate`.
 - `openURLs:`:
   - Directory → `openFolderURL:`
   - File → sandbox start + `SetSingleFile` + best-effort parent `ScanDirectorySelecting` if listable
 - Status string: name · WxH · zoom% (Fit|Zoom) · index/total
+- Window title: current file name when an image is open
 
 ### 5.3 ImageCanvasView
 

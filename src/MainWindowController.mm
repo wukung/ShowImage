@@ -28,17 +28,18 @@
 @implementation MainWindowController
 
 - (instancetype)init {
+  // Standard title bar (not FullSizeContentView): keeps the filename readable
+  // and prevents the image from drawing under the traffic lights / title.
   NSWindow* window =
       [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 960, 720)
                                   styleMask:NSWindowStyleMaskTitled |
                                             NSWindowStyleMaskClosable |
                                             NSWindowStyleMaskMiniaturizable |
-                                            NSWindowStyleMaskResizable |
-                                            NSWindowStyleMaskFullSizeContentView
+                                            NSWindowStyleMaskResizable
                                     backing:NSBackingStoreBuffered
                                       defer:NO];
   window.title = @"ShowImage";
-  window.titlebarAppearsTransparent = YES;
+  window.titlebarAppearsTransparent = NO;
   window.collectionBehavior =
       NSWindowCollectionBehaviorFullScreenPrimary;
   window.minSize = NSMakeSize(320, 240);
@@ -92,8 +93,11 @@
 
   [content addSubview:self.canvas];
   [content addSubview:self.statusLabel];
+  // Welcome above canvas so it is visible when both occupy the same rect.
   [content addSubview:self.welcomeView];
   [self layoutChrome];
+  // Ensure welcome is shown after first layout (empty ImageList at launch).
+  [self showWelcomeIfNeeded];
 }
 
 - (NSView*)buildWelcomeView {
@@ -188,12 +192,16 @@
 
 - (void)layoutChrome {
   NSView* content = self.window.contentView;
+  // contentView already sits below a standard title bar. Use contentView
+  // coordinates only — contentLayoutRect is in *window* space and must not be
+  // applied as subview frames (that pushed welcome/canvas off-screen).
+  const NSRect bounds = content.bounds;
   const CGFloat statusH = 24.0;
-  NSRect bounds = content.bounds;
   self.statusLabel.frame =
-      NSMakeRect(0, 0, bounds.size.width, statusH);
+      NSMakeRect(0, 0, NSWidth(bounds), statusH);
   const NSRect mainRect =
-      NSMakeRect(0, statusH, bounds.size.width, bounds.size.height - statusH);
+      NSMakeRect(0, statusH, NSWidth(bounds),
+                 fmax(0.0, NSHeight(bounds) - statusH));
   self.canvas.frame = mainRect;
   self.welcomeView.frame = mainRect;
 }

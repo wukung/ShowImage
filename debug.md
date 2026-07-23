@@ -11,6 +11,26 @@
 Running log of **problems found** (reviews, bugs, regressions) and **what was changed**.
 Not a design doc — see `design.md` for architecture.
 
+## 2026-07-23 — Bug: image under title bar / invisible filename
+
+### Problem
+- `NSWindowStyleMaskFullSizeContentView` + transparent title bar drew the image under the title.
+- Window title (filename) blended into the dark image → hard to read.
+
+### Fix
+- Standard titled window (`titlebarAppearsTransparent = NO`, no full-size content).
+- Layout canvas/welcome/status with `window.contentLayoutRect`.
+
+### Files
+- `src/MainWindowController.mm`
+
+### Status
+- fixed (local); review **no medium+**
+
+### Follow-up (welcome missing)
+- Using `contentLayoutRect` (window coords) as contentView subview frames hid the welcome banner.
+- Reverted layout to `contentView.bounds` (content coords) under standard title bar.
+
 Severity guide (aligns with `AGENT.md` §8):
 
 | Label | Level | Review loop |
